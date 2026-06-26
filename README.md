@@ -106,6 +106,15 @@ UI with gradio to do similarity search:
     5-similarity-search-gradio.ipynb
 ```
 
+Feature/model monitoring on the embedding feature with drift-triggered retraining (requires the
+`train_yolo` job; register it with `python run-job.py train`):
+```shell
+    6-monitoring-and-retraining.ipynb
+```
+This notebook adds feature monitoring on the CLIP `embedding` (centroid distance + norm PSI) and on
+`num_bboxes`, redeploys the similarity service with a predictor that logs query embeddings, and
+configures model monitoring that re-runs `train_yolo` after consecutive embedding-drift shifts.
+
 # This has already been done for your projects
 
 ## Installation

@@ -77,7 +77,8 @@ def load_parameters(model_path):
 
 def copy_to_local_dir_training_data():
     print("Copying training data to local directory.")
-    src = "./data/widerface.zip"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    src = os.path.join(base_dir, "data/widerface.zip")
     dst = "/tmp/widerface.zip"
     shutil.copy2(src, dst)
     with zipfile.ZipFile(dst, 'r') as zip_ref:
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     copy_to_local_dir_training_data()
     model = load_parameters("weights/face_finder_best.npz")
     params = {
-        'data': '/hopsfs/Jupyter/yolov8-face/data/widerface.yaml',
+        'data': os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/widerface.yaml"),
         'epochs': 1,
         'batch': 32,
         'imgsz': 640,

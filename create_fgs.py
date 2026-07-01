@@ -23,7 +23,7 @@ def parse_annotation_file(annotation_file, label, base_dir_images=""):
         lines = [line.strip() for line in f if line.strip()]
 
     i = 0
-    now = datetime.utcnow()
+    now = datetime.now()
     while i < len(lines):
         filename = lines[i]
         num_bboxes = int(lines[i + 1])
@@ -87,20 +87,24 @@ def build_dataset_and_write_to_hopsworks(
         online_enabled=False
     )
 
+    print(f"Inserting {len(df)} rows into feature group '{feature_group_name}' v{feature_group_version}...")
     fg.insert(df)
     return df, fg
 
 
 
 if __name__ == '__main__':
+    # Resolve paths relative to this script's directory so it runs from any container folder
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
     # Source annotation files
-    TRAIN_FILE = "/hopsfs/Jupyter/yolov8-face/data/wider_face_split/wider_face_train_bbx_gt.txt"
-    VAL_FILE   = "/hopsfs/Jupyter/yolov8-face/data/wider_face_split/wider_face_val_bbx_gt.txt"
-    
+    TRAIN_FILE = os.path.join(BASE_DIR, "data/wider_face_split/wider_face_train_bbx_gt.txt")
+    VAL_FILE   = os.path.join(BASE_DIR, "data/wider_face_split/wider_face_val_bbx_gt.txt")
+
     # Base directory where the actual image files live (so we can compute size/timestamp).
     # If the paths in the files are already absolute, leave this empty string.
-    TRAIN_DIR_IMAGES = "/hopsfs/Jupyter/yolov8-face/data/WIDER_train/images"
-    VAL_DIR_IMAGES = "/hopsfs/Jupyter/yolov8-face/data/WIDER_val/images"
+    TRAIN_DIR_IMAGES = os.path.join(BASE_DIR, "data/WIDER_train/images")
+    VAL_DIR_IMAGES = os.path.join(BASE_DIR, "data/WIDER_val/images")
     
     df_train = parse_annotation_file(TRAIN_FILE, label="train", base_dir_images=TRAIN_DIR_IMAGES)
     df_val = parse_annotation_file(VAL_FILE, label="val", base_dir_images=VAL_DIR_IMAGES)

@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from datetime import datetime
 import hopsworks
+from hsfs.statistics_config import StatisticsConfig
 
 def parse_annotation_file(annotation_file, label, base_dir_images=""):
     """
@@ -84,7 +85,10 @@ def build_dataset_and_write_to_hopsworks(
         primary_key=primary_key,
         event_time=event_time,
         description=description,
-        online_enabled=False
+        online_enabled=False,
+        # kll=True persists per-commit KLL sketches, required by the rolling-window
+        # distribution monitoring configured in notebook 6.
+        statistics_config=StatisticsConfig(kll=True),
     )
 
     print(f"Inserting {len(df)} rows into feature group '{feature_group_name}' v{feature_group_version}...")

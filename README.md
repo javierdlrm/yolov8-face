@@ -43,13 +43,12 @@ The models have been trained on [WIDERFace](http://shuoyang1213.me/WIDERFACE/) d
 
 ## Training in Notebooks
 
-- "Edit configuration" before starting a Jupyter notebook:
+Training runs as the `train_yolo` platform job (1 CPU, 10000 MB, 1 GPU, environment `yolov8`),
+registered and launched from the notebooks. The Jupyter server itself needs no GPU. This folder
+must be inside the project filesystem (for example cloned into the `Jupyter` dataset): it becomes
+the job's application path.
 
-  - Memory: 10000 (MB), CPUs: 1, GPU: 1
-
-- Start the notebook with the environment 'yolo8'
-
-- Create a console in Jupyter and run the following
+- To try the pretrained weights locally, create a console in Jupyter and run the following
 
 ```shell
     bash
@@ -68,7 +67,8 @@ Create feature groups for all training images
     1-create-feature-groups.ipynb
 ```
 
-Create the training/test split and fine tune the pretrained model
+Register the `train_yolo` job and run it to fine-tune the pretrained model. The same job is
+reused later for drift-triggered retraining.
 ```shell
     2-fine-tune.ipynb
 ```
@@ -85,9 +85,14 @@ You need to set the following environment variables
 * HOPSWORKS_API_KEY=
 
 ```shell
-python run-job create [drop]
-python run-job train [drop]
+python run_job.py create [drop]
+python run_job.py train [drop]
+python run_job.py retrain [drop]
 ```
+
+`create` registers and runs the `create_fgs` job, `train` fine-tunes from the prepared snapshot,
+`retrain` rebuilds the training data from the `wider_face_files` feature group first. `drop`
+re-registers the job configuration before running.
 
 ### Extra notebooks 
 
@@ -106,14 +111,16 @@ UI with gradio to do similarity search:
     5-similarity-search-gradio.ipynb
 ```
 
-Feature/model monitoring on the embedding feature with drift-triggered retraining (requires the
-`train_yolo` job; register it with `python run-job.py train`):
+Feature/model monitoring on the embedding feature with drift-triggered retraining:
 ```shell
     6-monitoring-and-retraining.ipynb
 ```
 This notebook adds feature monitoring on the CLIP `embedding` (centroid distance + norm PSI) and on
-`num_bboxes`, redeploys the similarity service with a predictor that logs query embeddings, and
-configures model monitoring that re-runs `train_yolo` after consecutive embedding-drift shifts.
+`num_bboxes`. It then creates a logging-enabled feature view over the embeddings, runs `train_yolo`
+in feature-store-driven mode to register a `facerecognition` version linked to the feature view and
+a baseline training dataset, redeploys the similarity service with a predictor that logs query
+embeddings under that version, and configures model monitoring that re-runs `train_yolo` after
+consecutive embedding-drift shifts.
 
 # This has already been done for your projects
 

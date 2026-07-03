@@ -135,6 +135,27 @@ def build_training_data_from_feature_store(fs, out_dir="/tmp/widerface"):
     return out_dir
 
 
+def resolve_embeddings_provenance(fs):
+    """(feature_view, td_version) for image_embeddings_fv, or (None, None) before notebook 6.
+
+    Model monitoring requires the monitored model version to carry a training
+    dataset version, so when the embeddings feature view exists the registered
+    model is linked to it and to a baseline training dataset (reusing the
+    latest one, or creating it on the first feature-store-driven run).
+    """
+    fv = fs.get_feature_view("image_embeddings_fv", version=1)
+    if fv is None:
+        return None, None
+    training_datasets = fv.get_training_datasets()
+    if training_datasets:
+        td_version = max(td.version for td in training_datasets)
+    else:
+        td_version, _ = fv.create_training_data(
+            description="Baseline embedding population for drift monitoring",
+        )
+    return fv, td_version
+
+
 if __name__ == '__main__':
     import sys
 
@@ -209,10 +230,28 @@ if __name__ == '__main__':
     if num_images is not None:
         metrics["num_images"] = num_images
 
+    # Evaluate so registered versions are comparable across retrains
+    # (mr.get_best_model). Never let a failed eval block registration.
+    try:
+        val_results = model.val(data=params['data'], device=params['device'])
+        metrics["mAP50"] = float(val_results.box.map50)
+        metrics["mAP50_95"] = float(val_results.box.map)
+    except Exception as e:
+        print(f"Skipping eval metrics: {e}")
+
+    # Link the model to the embeddings feature view + baseline training dataset
+    # when they exist (created in notebook 6); required for model monitoring.
+    fv, td_version = resolve_embeddings_provenance(fs)
+    model_kwargs = {}
+    if fv is not None:
+        model_kwargs = {"feature_view": fv, "training_dataset_version": td_version}
+        print(f"Linking model to image_embeddings_fv v{fv.version}, training dataset v{td_version}")
+
     faces_model = mr.python.create_model(
         name="facerecognition",
         metrics=metrics,
         description=f"Yolo-v8 face recognition model ({mode})",
+        **model_kwargs,
     )
 
     # Save the model to the specified directory
